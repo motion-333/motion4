@@ -3,17 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Merged Topographic Map</title>
+  <title>Topographic Background</title>
   <style>
     html, body {
       margin: 0;
       padding: 0;
-      overflow: auto;
+      overflow: hidden;
       background: #fff;
-      height: 600vh;
+      height: 100vh;
     }
     #scroll-area {
-      height: 600vh;
+      height: 100vh;
       position: relative;
     }
     #map {
@@ -21,7 +21,7 @@
       top: 0;
       left: 0;
       width: 100%;
-      height: 300vh;
+      height: 100vh;
       cursor: crosshair;
       display: block;
       will-change: transform;
@@ -73,17 +73,20 @@
     })(this);
 
     const canvas = document.getElementById('map'),
-          ctx = canvas.getContext('2d');
+          ctx    = canvas.getContext('2d');
 
+    const scrollTarget = (window.parent && window.parent !== window) ? window.parent : window;
+
+    let w2, h2;
     function resizeCanvas(){
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight * 3; // 300vh
+      canvas.width  = scrollTarget.innerWidth;
+      canvas.height = scrollTarget.innerHeight;
+      w2 = Math.ceil(canvas.width  / DS);
+      h2 = Math.ceil(canvas.height / DS);
     }
     window.addEventListener('resize', resizeCanvas);
+    if (scrollTarget !== window) scrollTarget.addEventListener('resize', resizeCanvas);
     resizeCanvas();
-
-    const w2 = Math.ceil(canvas.width / DS),
-          h2 = Math.ceil(canvas.height / DS);
 
     function makeTextures(){
       const patterns = [];
@@ -136,7 +139,7 @@
       return loops;
     }
 
-    let offsetX = 0, offsetY = 0;
+    let offsetX = 0;
 
     function drawSlice(scrollY){
       const W = canvas.width, H = canvas.height;
@@ -223,26 +226,17 @@
       }
 
       offsetX += dx;
-      offsetY += dy;
     }
 
     // THROTTLED SCROLL HANDLING
     let ticking = false;
     let lastDrawY = -Infinity;
-    const SCROLL_STEP = 20;
+    const SCROLL_STEP = 40;
 
     const scrollTarget = (window.parent && window.parent !== window) ? window.parent : window;
 
     scrollTarget.addEventListener('scroll', () => {
       const sy = Math.floor(scrollTarget.scrollY);
-
-      if (sy <= scrollTarget.innerHeight * 3) {
-        canvas.style.position = "fixed";
-        canvas.style.top = "0";
-      } else {
-        canvas.style.position = "absolute";
-        canvas.style.top = (3 * scrollTarget.innerHeight) + "px";
-      }
 
       if (Math.abs(sy - lastDrawY) >= SCROLL_STEP) {
         lastDrawY = sy;
