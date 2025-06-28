@@ -9,7 +9,7 @@
       margin: 0;
       padding: 0;
       overflow: hidden;
-      background: #fff;
+      background: #faf8e5;
       height: 100vh;
     }
     #scroll-area {
@@ -25,6 +25,7 @@
       cursor: crosshair;
       display: block;
       will-change: transform;
+      background: #faf8e5;
     }
   </style>
 </head>
@@ -38,7 +39,7 @@
     const GRID_STEP = 100;
     const SCALE = 0.01;
     const CONTOUR_INT = 30;
-    const DS = 8;
+    const DS = 16;
     const dx = 5;
     const dy = 2.5;
 
@@ -90,26 +91,26 @@
       let c = document.createElement('canvas'), cx;
       // dot
       c.width = c.height = 20; cx = c.getContext('2d');
-      cx.fillStyle = '#1449ff';
+      cx.fillStyle = '#ffffff';
       [[5,5],[15,15]].forEach(([x,y])=>{ cx.beginPath(); cx.arc(x,y,3,0,2*Math.PI); cx.fill(); });
       patterns.push(ctx.createPattern(c, 'repeat'));
       // slash
       c.width = c.height = 20; cx = c.getContext('2d');
-      cx.strokeStyle = '#1449ff'; cx.lineWidth = 2;
+      cx.strokeStyle = '#ffffff'; cx.lineWidth = 2;
       cx.beginPath(); cx.moveTo(0,20); cx.lineTo(20,0); cx.stroke();
       patterns.push(ctx.createPattern(c, 'repeat'));
       // polka
       c.width = c.height = 30; cx = c.getContext('2d');
-      cx.fillStyle = '#1449ff'; cx.beginPath(); cx.arc(15,15,5,0,2*Math.PI); cx.fill();
+      cx.fillStyle = '#ffffff'; cx.beginPath(); cx.arc(15,15,5,0,2*Math.PI); cx.fill();
       patterns.push(ctx.createPattern(c, 'repeat'));
       // plus
       c.width = c.height = 20; cx = c.getContext('2d');
-      cx.strokeStyle = '#1449ff'; cx.lineWidth = 2;
+      cx.strokeStyle = '#ffffff'; cx.lineWidth = 2;
       cx.beginPath(); cx.moveTo(10,2); cx.lineTo(10,18); cx.moveTo(2,10); cx.lineTo(18,10); cx.stroke();
       patterns.push(ctx.createPattern(c, 'repeat'));
       // dollar
       c.width = c.height = 30; cx = c.getContext('2d');
-      cx.fillStyle = '#1449ff'; cx.font = '20px sans-serif'; cx.fillText('$', 8, 22);
+      cx.fillStyle = '#ffffff'; cx.font = '20px sans-serif'; cx.fillText('$', 8, 22);
       patterns.push(ctx.createPattern(c, 'repeat'));
       return patterns;
     }
@@ -144,7 +145,7 @@
 
       ctx.clearRect(0, 0, W, H);
 
-      ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1; ctx.setLineDash([5,5]);
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1; ctx.setLineDash([5,5]);
       for(let x = 0; x <= W; x += GRID_STEP){
         ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
       }
@@ -207,7 +208,7 @@
           ctx.closePath(); ctx.fill();
         });
 
-        ctx.strokeStyle = '#1449ff'; ctx.lineWidth = 2; ctx.beginPath();
+        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.beginPath();
         const jf = 0.02, ja = 5;
         segs.forEach(s=>{
           const x1 = s.p1.x * DS, y1 = s.p1.y * DS;
@@ -228,7 +229,7 @@
     // THROTTLED SCROLL HANDLING
     let ticking = false;
     let lastDrawY = -Infinity;
-    const SCROLL_STEP = 40;
+    const SCROLL_STEP = 80;
 
     function handleScrollY(sy){
       if (Math.abs(sy - lastDrawY) >= SCROLL_STEP) {
