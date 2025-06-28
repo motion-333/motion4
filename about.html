@@ -290,6 +290,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const contactText     = document.querySelector('.contact-text');
   const descriptionText = document.querySelector('.description-text');
   const icons           = document.querySelectorAll('.folder-icon');
+  const bgFrame         = document.getElementById('topo-bg');
+
+  // relay scroll position to the background iframe
+  function sendScroll() {
+    if (bgFrame && bgFrame.contentWindow) {
+      bgFrame.contentWindow.postMessage({ scrollY: window.scrollY }, '*');
+    }
+  }
+  window.addEventListener('scroll', sendScroll);
+  if (bgFrame) bgFrame.addEventListener('load', sendScroll);
 
   // --- CONTACT TEXT TYPING ---
   const altOptions = ['+33635942106', '@MOTION.333'];
@@ -462,7 +472,7 @@ document.addEventListener('DOMContentLoaded', () => {
       el.style.opacity = 1 - fadeRatio;
       el.style.filter  = `blur(${fadeRatio * 10}px)`;
     });
-    sequence.forEach((idx, i) => {
+  sequence.forEach((idx, i) => {
       const el    = icons[idx];
       const base  = baseOffsets[idx] || 0;
       const start = i * spacing;
@@ -473,6 +483,8 @@ document.addEventListener('DOMContentLoaded', () => {
       el.style.transform = `translateY(-${offsetY}px)`;
     });
   });
+  // sync initial scroll position
+  sendScroll();
 });
 </script>
 

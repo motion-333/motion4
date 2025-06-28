@@ -75,17 +75,14 @@
     const canvas = document.getElementById('map'),
           ctx    = canvas.getContext('2d');
 
-    const scrollTarget = (window.parent && window.parent !== window) ? window.parent : window;
-
     let w2, h2;
     function resizeCanvas(){
-      canvas.width  = scrollTarget.innerWidth;
-      canvas.height = scrollTarget.innerHeight;
+      canvas.width  = window.innerWidth;
+      canvas.height = window.innerHeight;
       w2 = Math.ceil(canvas.width  / DS);
       h2 = Math.ceil(canvas.height / DS);
     }
     window.addEventListener('resize', resizeCanvas);
-    if (scrollTarget !== window) scrollTarget.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
     function makeTextures(){
@@ -233,11 +230,7 @@
     let lastDrawY = -Infinity;
     const SCROLL_STEP = 40;
 
-    const scrollTarget = (window.parent && window.parent !== window) ? window.parent : window;
-
-    scrollTarget.addEventListener('scroll', () => {
-      const sy = Math.floor(scrollTarget.scrollY);
-
+    function handleScrollY(sy){
       if (Math.abs(sy - lastDrawY) >= SCROLL_STEP) {
         lastDrawY = sy;
         if (!ticking) {
@@ -247,6 +240,14 @@
           });
           ticking = true;
         }
+      }
+    }
+
+    window.addEventListener('scroll', () => handleScrollY(window.scrollY));
+
+    window.addEventListener('message', e => {
+      if (e.data && typeof e.data.scrollY === 'number') {
+        handleScrollY(e.data.scrollY);
       }
     });
 
