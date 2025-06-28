@@ -1,27 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>500vh Topo Canvas</title>
+  <title>Merged Topographic Map</title>
   <style>
     html, body {
       margin: 0;
       padding: 0;
       overflow: auto;
       background: #fff;
+      height: 600vh;
     }
     #scroll-area {
-      height: 500vh;
+      height: 600vh;
       position: relative;
     }
     #map {
       position: fixed;
-      top: 0; left: 0;
+      top: 0;
+      left: 0;
       width: 100%;
-      height: 100vh;
+      height: 300vh;
       cursor: crosshair;
       display: block;
+      will-change: transform;
     }
   </style>
 </head>
@@ -32,66 +35,63 @@
 
   <script>
     // PARAMETERS
-    const GRID_STEP   = 100;
-    const SCALE       = 0.01;
+    const GRID_STEP = 100;
+    const SCALE = 0.01;
     const CONTOUR_INT = 30;
-    const DS          = 8;
-    const dx          = 5;
-    const dy          = 2.5;
+    const DS = 8;
+    const dx = 5;
+    const dy = 2.5;
 
-    // Perlin noise setup
+    // PERLIN NOISE
     (function(global){
       var noise = global.noise = {};
       var grad3 = [[1,1],[-1,1],[1,-1],[-1,-1]];
-      var p = []; for(var i=0;i<256;i++) p[i]=i;
+      var p = [];
+      for(let i = 0; i < 256; i++) p[i] = i;
       noise.seed = function(seed){
-        var rand = function(){ seed=(seed*16807)%2147483647; return (seed-1)/2147483646; };
-        for(var i=255;i>0;i--){
-          var j = Math.floor(rand()*(i+1)), tmp = p[i];
-          p[i] = p[j]; p[j] = tmp;
+        let rand = () => (seed = (seed * 16807) % 2147483647, (seed - 1) / 2147483646);
+        for (let i = 255; i > 0; i--) {
+          let j = Math.floor(rand() * (i + 1));
+          [p[i], p[j]] = [p[j], p[i]];
         }
-        noise.perm = Array(512).fill().map((_,i)=>p[i&255]);
+        noise.perm = Array(512).fill().map((_, i) => p[i & 255]);
       };
-      noise.perlin2 = function(x,y){
-        var X=(x|0)&255, Y=(y|0)&255; x-=x|0; y-=y|0;
-        var gi00 = noise.perm[X+noise.perm[Y]]%4,
-            gi01 = noise.perm[X+noise.perm[Y+1]]%4,
-            gi10 = noise.perm[X+1+noise.perm[Y]]%4,
-            gi11 = noise.perm[X+1+noise.perm[Y+1]]%4;
-        var n00 = grad3[gi00][0]*x     + grad3[gi00][1]*y,
-            n10 = grad3[gi10][0]*(x-1) + grad3[gi10][1]*y,
-            n01 = grad3[gi01][0]*x     + grad3[gi01][1]*(y-1),
-            n11 = grad3[gi11][0]*(x-1) + grad3[gi11][1]*(y-1);
-        var u = x*x*(3-2*x), v = y*y*(3-2*y);
-        return n00 + u*(n10-n00) + v*(n01-n00) + u*v*(n00 - n01 - n10 + n11);
+      noise.perlin2 = function(x, y){
+        let X = Math.floor(x) & 255, Y = Math.floor(y) & 255;
+        x -= Math.floor(x); y -= Math.floor(y);
+        let fade = t => t*t*(3-2*t);
+        let gi = (xi, yi) => noise.perm[xi + noise.perm[yi]] % 4;
+        let grad = i => grad3[i];
+        let dot = (g, x, y) => g[0]*x + g[1]*y;
+        let u = fade(x), v = fade(y);
+        let g00 = grad(gi(X, Y)), g01 = grad(gi(X, Y+1)),
+            g10 = grad(gi(X+1, Y)), g11 = grad(gi(X+1, Y+1));
+        return dot(g00,x,y)*(1-u)*(1-v) + dot(g10,x-1,y)*u*(1-v) +
+               dot(g01,x,y-1)*(1-u)*v + dot(g11,x-1,y-1)*u*v;
       };
       noise.seed(1);
     })(this);
 
-    // Setup canvas
     const canvas = document.getElementById('map'),
-          ctx    = canvas.getContext('2d');
+          ctx = canvas.getContext('2d');
 
     function resizeCanvas(){
-      canvas.width  = canvas.clientWidth;
-      canvas.height = canvas.clientHeight;
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight * 3; // 300vh
     }
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
-    const w2 = Math.ceil(canvas.width  / DS),
+    const w2 = Math.ceil(canvas.width / DS),
           h2 = Math.ceil(canvas.height / DS);
 
-    // Pre-create textures
     function makeTextures(){
       const patterns = [];
       let c = document.createElement('canvas'), cx;
       // dot
       c.width = c.height = 20; cx = c.getContext('2d');
       cx.fillStyle = '#1449ff';
-      [[5,5],[15,15]].forEach(([x,y])=>{
-        cx.beginPath(); cx.arc(x,y,3,0,2*Math.PI); cx.fill();
-      });
+      [[5,5],[15,15]].forEach(([x,y])=>{ cx.beginPath(); cx.arc(x,y,3,0,2*Math.PI); cx.fill(); });
       patterns.push(ctx.createPattern(c, 'repeat'));
       // slash
       c.width = c.height = 20; cx = c.getContext('2d');
@@ -100,19 +100,16 @@
       patterns.push(ctx.createPattern(c, 'repeat'));
       // polka
       c.width = c.height = 30; cx = c.getContext('2d');
-      cx.fillStyle = '#1449ff';
-      cx.beginPath(); cx.arc(15,15,5,0,2*Math.PI); cx.fill();
+      cx.fillStyle = '#1449ff'; cx.beginPath(); cx.arc(15,15,5,0,2*Math.PI); cx.fill();
       patterns.push(ctx.createPattern(c, 'repeat'));
       // plus
       c.width = c.height = 20; cx = c.getContext('2d');
       cx.strokeStyle = '#1449ff'; cx.lineWidth = 2;
-      cx.beginPath(); cx.moveTo(10,2); cx.lineTo(10,18);
-      cx.moveTo(2,10); cx.lineTo(18,10); cx.stroke();
+      cx.beginPath(); cx.moveTo(10,2); cx.lineTo(10,18); cx.moveTo(2,10); cx.lineTo(18,10); cx.stroke();
       patterns.push(ctx.createPattern(c, 'repeat'));
       // dollar
       c.width = c.height = 30; cx = c.getContext('2d');
-      cx.fillStyle = '#1449ff'; cx.font = '20px sans-serif';
-      cx.fillText('$', 8,22);
+      cx.fillStyle = '#1449ff'; cx.font = '20px sans-serif'; cx.fillText('$', 8, 22);
       patterns.push(ctx.createPattern(c, 'repeat'));
       return patterns;
     }
@@ -139,84 +136,88 @@
       return loops;
     }
 
-    // Draw one 100vh slice based on scrollY
     let offsetX = 0, offsetY = 0;
+
     function drawSlice(scrollY){
       const W = canvas.width, H = canvas.height;
       const sliceOffsetY = scrollY * SCALE;
 
       ctx.clearRect(0, 0, W, H);
 
-      // Draw grid
       ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1; ctx.setLineDash([5,5]);
-      for(let x=0; x<=W; x+=GRID_STEP){
-        ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke();
+      for(let x = 0; x <= W; x += GRID_STEP){
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
       }
-      for(let y=0; y<=H; y+=GRID_STEP){
-        ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
+      for(let y = 0; y <= H; y += GRID_STEP){
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
       }
       ctx.setLineDash([]);
 
-      // Marching squares & fill
-      const levels = Math.floor(255/CONTOUR_INT);
-      for(let i=1; i<=levels; i++){
+      const levels = Math.floor(255 / CONTOUR_INT);
+      for(let i = 1; i <= levels; i++){
         const lvl = i * CONTOUR_INT, segs = [];
-        for(let y=0; y<h2-1; y++){
-          for(let x=0; x<w2-1; x++){
-            // sample corners
-            const v0 = (noise.perlin2((x*DS+offsetX)*SCALE, (y*DS+sliceOffsetY)*SCALE)+1)*0.5*255;
-            const v1 = (noise.perlin2(((x+1)*DS+offsetX)*SCALE, (y*DS+sliceOffsetY)*SCALE)+1)*0.5*255;
-            const v2 = (noise.perlin2((x*DS+offsetX)*SCALE, ((y+1)*DS+sliceOffsetY)*SCALE)+1)*0.5*255;
-            const v3 = (noise.perlin2(((x+1)*DS+offsetX)*SCALE, ((y+1)*DS+sliceOffsetY)*SCALE)+1)*0.5*255;
+        for(let y = 0; y < h2 - 1; y++){
+          for(let x = 0; x < w2 - 1; x++){
+            const sample = (ix, iy) =>
+              (noise.perlin2((ix + offsetX) * SCALE, (iy + sliceOffsetY) * SCALE) + 1) * 0.5 * 255;
+
+            const x0 = x * DS, x1 = (x+1) * DS, y0 = y * DS, y1 = (y+1) * DS;
+            const v0 = sample(x0, y0), v1 = sample(x1, y0), v2 = sample(x0, y1), v3 = sample(x1, y1);
+
             let m = 0;
-            if(v0>lvl) m|=1; if(v1>lvl) m|=2; if(v2>lvl) m|=8; if(v3>lvl) m|=4;
-            if(m===0 || m===15) continue;
-            const xm  = x + (lvl-v0)/((v1-v0)||1),
-                  ym  = y + (lvl-v0)/((v2-v0)||1),
-                  xm2 = x + (lvl-v2)/((v3-v2)||1),
-                  ym2 = y + (lvl-v1)/((v3-v1)||1);
+            if (v0 > lvl) m |= 1;
+            if (v1 > lvl) m |= 2;
+            if (v2 > lvl) m |= 8;
+            if (v3 > lvl) m |= 4;
+            if (m === 0 || m === 15) continue;
+
+            const xm = x + (lvl - v0) / ((v1 - v0) || 1),
+                  ym = y + (lvl - v0) / ((v2 - v0) || 1),
+                  xm2 = x + (lvl - v2) / ((v3 - v2) || 1),
+                  ym2 = y + (lvl - v1) / ((v3 - v1) || 1);
             const add = (p1,p2) => segs.push({p1,p2});
+
             switch(m){
-              case 1: case 14: add({x:x,    y:ym},{x:xm, y: y}); break;
-              case 2: case 13: add({x:xm,   y:y},{x:x+1,y:ym2}); break;
-              case 3: case 12: add({x:x,    y:ym},{x:x+1,y:ym2}); break;
-              case 4: case 11: add({x:x+1,  y:ym2},{x:xm2,y:y+1}); break;
+              case 1: case 14: add({x:x, y:ym}, {x:xm, y:y}); break;
+              case 2: case 13: add({x:xm, y:y}, {x:x+1, y:ym2}); break;
+              case 3: case 12: add({x:x, y:ym}, {x:x+1, y:ym2}); break;
+              case 4: case 11: add({x:x+1, y:ym2}, {x:xm2, y:y+1}); break;
               case 5:
-                add({x:x, y:ym},{x:xm,y:y});
-                add({x:x+1,y:ym2},{x:xm2,y:y+1});
+                add({x:x, y:ym}, {x:xm, y:y});
+                add({x:x+1, y:ym2}, {x:xm2, y:y+1});
                 break;
-              case 6: case 9:  add({x:xm,  y:y},{x:xm2,y:y+1}); break;
-              case 7: case 8:  add({x:x,    y:ym},{x:xm2,y:y+1}); break;
+              case 6: case 9: add({x:xm, y:y}, {x:xm2, y:y+1}); break;
+              case 7: case 8: add({x:x, y:ym}, {x:xm2, y:y+1}); break;
               case 10:
-                add({x:xm,y:y},{x:x+1,y:ym2});
-                add({x:x, y:ym},{x:xm2,y:y+1});
+                add({x:xm, y:y}, {x:x+1, y:ym2});
+                add({x:x, y:ym}, {x:xm2, y:y+1});
                 break;
             }
           }
         }
-        // fill contours
+
         ctx.fillStyle = textures[(i-1)%textures.length];
         const loops = traceLoops(segs);
         loops.forEach(poly=>{
           ctx.beginPath();
-          poly.forEach((pt, j)=>{
+          poly.forEach((pt,j)=>{
             const px = pt.x * DS, py = pt.y * DS;
-            j ? ctx.lineTo(px,py) : ctx.moveTo(px,py);
+            j ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
           });
           ctx.closePath(); ctx.fill();
         });
-        // stroke with jitter
+
         ctx.strokeStyle = '#1449ff'; ctx.lineWidth = 2; ctx.beginPath();
         const jf = 0.02, ja = 5;
         segs.forEach(s=>{
-          const x1 = s.p1.x*DS, y1 = s.p1.y*DS;
-          const x2 = s.p2.x*DS, y2 = s.p2.y*DS;
-          const jx1 = (noise.perlin2((s.p1.x*DS+offsetX)*jf, (s.p1.y*DS+sliceOffsetY)*jf)-0.5)*ja;
-          const jy1 = (noise.perlin2((s.p1.x*DS+100+offsetX)*jf, (s.p1.y*DS+100+sliceOffsetY)*jf)-0.5)*ja;
-          const jx2 = (noise.perlin2((s.p2.x*DS+offsetX)*jf,      (s.p2.y*DS+sliceOffsetY)*jf)-0.5)*ja;
-          const jy2 = (noise.perlin2((s.p2.x*DS+100+offsetX)*jf,  (s.p2.y*DS+100+sliceOffsetY)*jf)-0.5)*ja;
-          ctx.moveTo(x1+jx1, y1+jy1);
-          ctx.lineTo(x2+jx2, y2+jy2);
+          const x1 = s.p1.x * DS, y1 = s.p1.y * DS;
+          const x2 = s.p2.x * DS, y2 = s.p2.y * DS;
+          const jx1 = (noise.perlin2((x1+offsetX)*jf, (y1+sliceOffsetY)*jf) - 0.5) * ja;
+          const jy1 = (noise.perlin2((x1+100+offsetX)*jf, (y1+100+sliceOffsetY)*jf) - 0.5) * ja;
+          const jx2 = (noise.perlin2((x2+offsetX)*jf, (y2+sliceOffsetY)*jf) - 0.5) * ja;
+          const jy2 = (noise.perlin2((x2+100+offsetX)*jf, (y2+100+sliceOffsetY)*jf) - 0.5) * ja;
+          ctx.moveTo(x1 + jx1, y1 + jy1);
+          ctx.lineTo(x2 + jx2, y2 + jy2);
         });
         ctx.stroke();
       }
@@ -225,21 +226,36 @@
       offsetY += dy;
     }
 
-    // Scroll listener
+    // THROTTLED SCROLL HANDLING
     let ticking = false;
-    window.addEventListener('scroll', ()=>{
-      const sy = window.scrollY;
-      if(sy > 500 * window.innerHeight) return;
-      if(!ticking){
-        requestAnimationFrame(()=>{
-          drawSlice(sy);
-          ticking = false;
-        });
-        ticking = true;
+    let lastDrawY = -Infinity;
+    const SCROLL_STEP = 20;
+
+    const scrollTarget = (window.parent && window.parent !== window) ? window.parent : window;
+
+    scrollTarget.addEventListener('scroll', () => {
+      const sy = Math.floor(scrollTarget.scrollY);
+
+      if (sy <= scrollTarget.innerHeight * 3) {
+        canvas.style.position = "fixed";
+        canvas.style.top = "0";
+      } else {
+        canvas.style.position = "absolute";
+        canvas.style.top = (3 * scrollTarget.innerHeight) + "px";
+      }
+
+      if (Math.abs(sy - lastDrawY) >= SCROLL_STEP) {
+        lastDrawY = sy;
+        if (!ticking) {
+          requestAnimationFrame(() => {
+            drawSlice(lastDrawY);
+            ticking = false;
+          });
+          ticking = true;
+        }
       }
     });
 
-    // Initial draw
     drawSlice(0);
   </script>
 </body>
