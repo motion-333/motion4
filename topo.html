@@ -39,7 +39,7 @@
     const GRID_STEP = 100;
     const SCALE = 0.01;
     const CONTOUR_INT = 30;
-    const DS = 16;
+    const DS = 32;
     const dx = 5;
     const dy = 2.5;
 
@@ -229,7 +229,7 @@
     // THROTTLED SCROLL HANDLING
     let ticking = false;
     let lastDrawY = -Infinity;
-    const SCROLL_STEP = 80;
+    const SCROLL_STEP = 120;
 
     function handleScrollY(sy){
       if (Math.abs(sy - lastDrawY) >= SCROLL_STEP) {

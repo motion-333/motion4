@@ -293,9 +293,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const bgFrame         = document.getElementById('topo-bg');
 
   // relay scroll position to the background iframe
+  let lastSentY = -Infinity;
+  const MESSAGE_STEP = 80;
   function sendScroll() {
+    const sy = window.scrollY;
+    if (Math.abs(sy - lastSentY) < MESSAGE_STEP) return;
+    lastSentY = sy;
     if (bgFrame && bgFrame.contentWindow) {
-      bgFrame.contentWindow.postMessage({ scrollY: window.scrollY }, '*');
+      bgFrame.contentWindow.postMessage({ scrollY: sy }, '*');
     }
   }
   window.addEventListener('scroll', sendScroll);
